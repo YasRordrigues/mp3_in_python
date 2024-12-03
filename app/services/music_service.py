@@ -9,49 +9,37 @@ class MusicService:
 
     def play_song(self, path: str):
         try:
-            mixer.music.load(path)
-            mixer.music.set_volume(self.current_volume)
-            mixer.music.play()
-            self.current_song = path
+            mixer.music.load(path)  # Carrega a música
+            mixer.music.set_volume(self.current_volume)  # Define o volume
+            mixer.music.play()  # Inicia a reprodução
+            self.current_song = path  # Atualiza a música atual
             return {"message": f"Playing: {os.path.basename(path)}"}
         except Exception as e:
             raise Exception(f"Error playing song: {str(e)}")
 
     def play_uploaded_song(self, file_path: str):
-        """Reproduz uma música salva no servidor"""
+        """
+        Reproduz uma música salva no servidor.
+        """
         return self.play_song(file_path)
 
     def pause_song(self):
         try:
             mixer.music.pause()
             return {"message": "Music paused"}
-        except Exception:
-            raise Exception("Error pausing song")
+        except Exception as e:
+            raise Exception(f"Error pausing song: {str(e)}")
 
     def resume_song(self):
         try:
             mixer.music.unpause()
             return {"message": "Music resumed"}
-        except Exception:
-            raise Exception("Error resuming song")
-
-    def increase_volume(self):
-        if self.current_volume >= 1.0:
-            return {"message": "Volume is already at maximum"}
-        self.current_volume = round(self.current_volume + 0.1, 1)
-        mixer.music.set_volume(self.current_volume)
-        return {"message": f"Volume increased to {self.current_volume}"}
-
-    def decrease_volume(self):
-        if self.current_volume <= 0.0:
-            return {"message": "Volume is already at minimum"}
-        self.current_volume = round(self.current_volume - 0.1, 1)
-        mixer.music.set_volume(self.current_volume)
-        return {"message": f"Volume decreased to {self.current_volume}"}
+        except Exception as e:
+            raise Exception(f"Error resuming song: {str(e)}")
 
     def stop_song(self):
         try:
             mixer.music.stop()
             return {"message": "Music stopped"}
-        except Exception:
-            raise Exception("Error stopping song")
+        except Exception as e:
+            raise Exception(f"Error stopping song: {str(e)}")
