@@ -1,3 +1,4 @@
+import os
 from pygame import mixer
 
 class MusicService:
@@ -12,9 +13,13 @@ class MusicService:
             mixer.music.set_volume(self.current_volume)
             mixer.music.play()
             self.current_song = path
-            return {"message": f"Playing: {path.split('/')[-1]}"}
+            return {"message": f"Playing: {os.path.basename(path)}"}
         except Exception as e:
             raise Exception(f"Error playing song: {str(e)}")
+
+    def play_uploaded_song(self, file_path: str):
+        """Reproduz uma música salva no servidor"""
+        return self.play_song(file_path)
 
     def pause_song(self):
         try:
