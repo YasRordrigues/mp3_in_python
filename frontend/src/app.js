@@ -5,8 +5,7 @@ import SongUploader from './components/SongUploader';
 function App() {
   return (
     <div className="App">
-      <MusicPlayer />
-      <SongUploader />
+      <MusicPlayer /> 
     </div>
   );
 }

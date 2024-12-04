@@ -9,19 +9,14 @@ class MusicService:
 
     def play_song(self, path: str):
         try:
-            mixer.music.load(path)  # Carrega a música
-            mixer.music.set_volume(self.current_volume)  # Define o volume
-            mixer.music.play()  # Inicia a reprodução
-            self.current_song = path  # Atualiza a música atual
+            # Carrega e reproduz a música especificada
+            mixer.music.load(path)
+            mixer.music.set_volume(self.current_volume)
+            mixer.music.play()
+            self.current_song = path  # Define a música atual
             return {"message": f"Playing: {os.path.basename(path)}"}
         except Exception as e:
             raise Exception(f"Error playing song: {str(e)}")
-
-    def play_uploaded_song(self, file_path: str):
-        """
-        Reproduz uma música salva no servidor.
-        """
-        return self.play_song(file_path)
 
     def pause_song(self):
         try:
@@ -40,6 +35,7 @@ class MusicService:
     def stop_song(self):
         try:
             mixer.music.stop()
+            self.current_song = None
             return {"message": "Music stopped"}
         except Exception as e:
             raise Exception(f"Error stopping song: {str(e)}")

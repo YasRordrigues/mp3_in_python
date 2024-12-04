@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from app.services.music_service import MusicService
-from app.schemas.song_schema import Song
 from pygame import mixer
+from typing import List
 import os
 
 router = APIRouter(prefix="/music", tags=["Music Player"])
@@ -14,53 +14,63 @@ music_service = MusicService()
 class VolumeRequest(BaseModel):
     volume: float
 
+# Modelo para receber o nome da música
+class SongRequest(BaseModel):
+    song_name: str
+
+# Diretório onde as músicas serão armazenadas
+UPLOAD_DIR = "./uploaded_songs/"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+@router.post("/upload/")
+async def upload_songs(files: List[UploadFile] = File(...)):
+    """Faz upload de múltiplas músicas"""
+    uploaded_files = []
+    try:
+        for file in files:
+            file_path = os.path.join(UPLOAD_DIR, file.filename)
+            with open(file_path, "wb") as f:
+                f.write(await file.read())
+            uploaded_files.append(file.filename)
+        return {"message": "Files uploaded successfully", "files": uploaded_files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading files: {str(e)}")
+
+
+@router.get("/list/")
+async def list_songs():
+    """Retorna uma lista de músicas disponíveis"""
+    try:
+        songs = os.listdir(UPLOAD_DIR)
+        return {"songs": songs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing songs: {str(e)}")
+
+
 @router.post("/play/")
-async def play_song(song: Song):
-    """
-    Reproduz uma música a partir do caminho fornecido.
-    """
+async def play_song(song: SongRequest):
+    """Reproduz uma música pelo nome"""
     try:
-        # Verifica se o caminho foi fornecido
-        if not song.path:
-            raise HTTPException(status_code=400, detail="File path is required.")
-        
-        # Verifica se o arquivo existe no caminho fornecido
-        if not os.path.isfile(song.path):
-            raise HTTPException(status_code=404, detail="File not found.")
-
-        # Tenta reproduzir a música
-        return music_service.play_song(song.path)
-
-    except HTTPException as e:
-        raise e  # Repassa exceções HTTP como estão
+        file_path = os.path.join(UPLOAD_DIR, song.song_name)
+        print(f"Attempting to play song: {file_path}")  # Log do caminho
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Song not found")
+        return music_service.play_song(file_path)
     except Exception as e:
-        # Log detalhado para debug
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-
-@router.post("/play/upload/")
-async def upload_and_play_song(file: UploadFile = File(...)):
-    """Faz upload de uma música e a reproduz"""
-    try:
-        temp_dir = "./temp/"
-        os.makedirs(temp_dir, exist_ok=True)  # Cria a pasta se não existir
-        file_path = os.path.join(temp_dir, file.filename)
-
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
-
-        # Reproduz o arquivo salvo
-        return music_service.play_uploaded_song(file_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error uploading/playing song: {str(e)}")
+        print(f"Error playing song: {e}")  # Log de erro detalhado
+        raise HTTPException(status_code=500, detail=f"Error playing song: {str(e)}")
 
 
 @router.post("/pause/")
 async def pause_song():
     return music_service.pause_song()
 
+
 @router.post("/resume/")
 async def resume_song():
     return music_service.resume_song()
+
 
 @router.post("/volume/set/")
 async def set_volume(request: VolumeRequest):
@@ -75,6 +85,7 @@ async def set_volume(request: VolumeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error setting volume: {str(e)}")
 
+
 @router.post("/volume/increase/")
 async def increase_volume():
     if music_service.current_volume >= 1.0:
@@ -83,6 +94,7 @@ async def increase_volume():
     mixer.music.set_volume(music_service.current_volume)
     return {"message": f"Volume increased to {music_service.current_volume}", "volume": music_service.current_volume}
 
+
 @router.post("/volume/decrease/")
 async def decrease_volume():
     if music_service.current_volume <= 0.0:
@@ -90,6 +102,7 @@ async def decrease_volume():
     music_service.current_volume = round(music_service.current_volume - 0.1, 1)
     mixer.music.set_volume(music_service.current_volume)
     return {"message": f"Volume decreased to {music_service.current_volume}", "volume": music_service.current_volume}
+
 
 @router.post("/stop/")
 async def stop_song():

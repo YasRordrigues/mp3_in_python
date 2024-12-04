@@ -1,21 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import SongUploader from "./SongUploader";
 
 const MusicPlayer = () => {
-  const [songPath, setSongPath] = useState("");
-  const [status, setStatus] = useState(""); // Apenas string para mensagem
-  const [volume, setVolume] = useState(0.5);
+  const [songs, setSongs] = useState([]);
+  const [selectedSong, setSelectedSong] = useState("");
+  const [status, setStatus] = useState(""); // Para exibir mensagens
+  const [volume, setVolume] = useState(0.5); // Volume inicial em 50%
+
+  // Busca as músicas disponíveis no servidor ao carregar o componente
+  useEffect(() => {
+    fetchSongs();
+  }, []);
+
+  const fetchSongs = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/music/list/");
+      setSongs(response.data.songs);
+    } catch (error) {
+      setStatus("Error fetching songs.");
+    }
+  };
 
   const handlePlay = async () => {
+    if (!selectedSong) {
+      setStatus("Please select a song to play.");
+      return;
+    }
     try {
+      console.log("Selected song:", selectedSong); // Verifica o nome da música
       const response = await axios.post("http://127.0.0.1:8000/music/play/", {
-        path: songPath,
+        song_name: selectedSong,
       });
-      setStatus(response.data.message);
+      console.log("Play response:", response.data); // Log para debug
+      setStatus(response.data.message || "Song is playing.");
     } catch (error) {
+      console.error("Error playing song:", error.response?.data); // Log detalhado
       setStatus(error.response?.data?.detail || "Error playing song.");
     }
   };
+  
 
   const handlePause = async () => {
     try {
@@ -65,17 +89,28 @@ const MusicPlayer = () => {
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Music Player</h1>
-      <input
-        type="text"
-        value={songPath}
-        placeholder="Enter the path to the song"
-        onChange={(e) => setSongPath(e.target.value)}
-        style={{ width: "80%", padding: "10px", marginBottom: "10px" }}
-      />
+
+      {/* Lista de músicas disponíveis */}
+      <h3>Available Songs</h3>
+      <select
+        value={selectedSong}
+        onChange={(e) => setSelectedSong(e.target.value)}
+        style={{ marginBottom: "10px" }}
+      >
+        <option value="">Select a song</option>
+        {songs.map((song, index) => (
+          <option key={index} value={song}>
+            {song}
+          </option>
+        ))}
+      </select>
+      <button onClick={handlePlay} style={{ margin: "10px" }}>
+        Play
+      </button>
+      <p>Status: {status}</p>
+
+      {/* Controles de reprodução */}
       <div>
-        <button onClick={handlePlay} style={{ margin: "5px" }}>
-          Play
-        </button>
         <button onClick={handlePause} style={{ margin: "5px" }}>
           Pause
         </button>
@@ -83,6 +118,8 @@ const MusicPlayer = () => {
           Resume
         </button>
       </div>
+
+      {/* Controles de volume */}
       <div style={{ marginTop: "20px" }}>
         <h3>Volume</h3>
         <button
@@ -108,7 +145,10 @@ const MusicPlayer = () => {
         </button>
         <p>Volume: {volume}</p>
       </div>
-      <p>Status: {status}</p>
+
+      {/* Componente de Upload */}
+      <h3>Upload Songs</h3>
+      <SongUploader onUploadComplete={fetchSongs} />
     </div>
   );
 };
