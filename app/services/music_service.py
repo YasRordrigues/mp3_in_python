@@ -3,39 +3,40 @@ from pygame import mixer
 
 class MusicService:
     def __init__(self):
-        mixer.init()
-        self.current_volume = 0.5
         self.current_song = None
+        self.is_paused = False
+        self.current_volume = 0.5
+        mixer.init()
 
-    def play_song(self, path: str):
-        try:
-            # Carrega e reproduz a música especificada
-            mixer.music.load(path)
+    def play_song(self, file_path):
+        if self.current_song == file_path and self.is_paused:
+            mixer.music.unpause()
+            self.is_paused = False
+            return {"message": "Resumed song"}
+        else:
+            self.stop_song()
+            mixer.music.load(file_path)
             mixer.music.set_volume(self.current_volume)
             mixer.music.play()
-            self.current_song = path  # Define a música atual
-            return {"message": f"Playing: {os.path.basename(path)}"}
-        except Exception as e:
-            raise Exception(f"Error playing song: {str(e)}")
+            self.current_song = file_path
+            self.is_paused = False
+            return {"message": f"Playing {os.path.basename(file_path)}"}
 
     def pause_song(self):
-        try:
-            mixer.music.pause()
-            return {"message": "Music paused"}
-        except Exception as e:
-            raise Exception(f"Error pausing song: {str(e)}")
+        mixer.music.pause()
+        self.is_paused = True
+        return {"message": "Song paused"}
 
     def resume_song(self):
-        try:
+        if self.is_paused:
             mixer.music.unpause()
-            return {"message": "Music resumed"}
-        except Exception as e:
-            raise Exception(f"Error resuming song: {str(e)}")
+            self.is_paused = False
+            return {"message": "Song resumed"}
+        else:
+            raise Exception("No song to resume")
 
     def stop_song(self):
-        try:
-            mixer.music.stop()
-            self.current_song = None
-            return {"message": "Music stopped"}
-        except Exception as e:
-            raise Exception(f"Error stopping song: {str(e)}")
+        mixer.music.stop()
+        self.is_paused = False
+        self.current_song = None
+        return {"message": "Song stopped"}

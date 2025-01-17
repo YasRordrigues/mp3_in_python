@@ -50,26 +50,19 @@ async def list_songs():
 
 @router.post("/play/")
 async def play_song(song: SongRequest):
-    """Reproduz uma música pelo nome"""
+    """Reproduz ou retoma uma música"""
     try:
         file_path = os.path.join(UPLOAD_DIR, song.song_name)
-        print(f"Attempting to play song: {file_path}")  # Log do caminho
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="Song not found")
         return music_service.play_song(file_path)
     except Exception as e:
-        print(f"Error playing song: {e}")  # Log de erro detalhado
         raise HTTPException(status_code=500, detail=f"Error playing song: {str(e)}")
 
 
 @router.post("/pause/")
 async def pause_song():
     return music_service.pause_song()
-
-
-@router.post("/resume/")
-async def resume_song():
-    return music_service.resume_song()
 
 
 @router.post("/volume/set/")

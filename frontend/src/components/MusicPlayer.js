@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import "../styles/MusicPlayer.css"; // Importando estilos CSS
 import SongUploader from "./SongUploader";
 
 const MusicPlayer = () => {
   const [songs, setSongs] = useState([]);
   const [selectedSong, setSelectedSong] = useState("");
-  const [status, setStatus] = useState(""); // Para exibir mensagens
-  const [volume, setVolume] = useState(0.5); // Volume inicial em 50%
+  const [status, setStatus] = useState("");
+  const [volume, setVolume] = useState(0.5);
+  const [progress, setProgress] = useState(0); // Barra de progresso
+  const [isPaused, setIsPaused] = useState(true); // Estado para gerenciar pausa
 
-  // Busca as músicas disponíveis no servidor ao carregar o componente
   useEffect(() => {
     fetchSongs();
   }, []);
@@ -28,48 +30,32 @@ const MusicPlayer = () => {
       return;
     }
     try {
-      console.log("Selected song:", selectedSong); // Verifica o nome da música
       const response = await axios.post("http://127.0.0.1:8000/music/play/", {
         song_name: selectedSong,
       });
-      console.log("Play response:", response.data); // Log para debug
       setStatus(response.data.message || "Song is playing.");
+      setProgress(10); // Simula progresso inicial
+      setIsPaused(false); // Define o estado como "reproduzindo"
     } catch (error) {
-      console.error("Error playing song:", error.response?.data); // Log detalhado
       setStatus(error.response?.data?.detail || "Error playing song.");
     }
   };
-  
 
   const handlePause = async () => {
     try {
       const response = await axios.post("http://127.0.0.1:8000/music/pause/");
       setStatus(response.data.message);
+      setIsPaused(true); // Define o estado como "pausado"
     } catch (error) {
       setStatus(error.response?.data?.detail || "Error pausing song.");
     }
   };
 
-  const handleResume = async () => {
-    try {
-      const response = await axios.post("http://127.0.0.1:8000/music/resume/");
-      setStatus(response.data.message);
-    } catch (error) {
-      setStatus(error.response?.data?.detail || "Error resuming song.");
-    }
-  };
-
-  const handleVolumeChange = async (type) => {
-    try {
-      const endpoint =
-        type === "increase"
-          ? "http://127.0.0.1:8000/music/volume/increase/"
-          : "http://127.0.0.1:8000/music/volume/decrease/";
-      const response = await axios.post(endpoint);
-      setVolume(response.data.volume); // Atualiza apenas o volume
-      setStatus(response.data.message);
-    } catch (error) {
-      setStatus(error.response?.data?.detail || "Error adjusting volume.");
+  const togglePlayPause = async () => {
+    if (isPaused) {
+      await handlePlay(); // Reproduz ou retoma
+    } else {
+      await handlePause(); // Pausa
     }
   };
 
@@ -87,47 +73,37 @@ const MusicPlayer = () => {
   };
 
   return (
-    <div style={{ padding: "20px", textAlign: "center" }}>
-      <h1>Music Player</h1>
+    <div className="music-player">
+      <h1>MP3 Player</h1>
 
-      {/* Lista de músicas disponíveis */}
-      <h3>Available Songs</h3>
-      <select
-        value={selectedSong}
-        onChange={(e) => setSelectedSong(e.target.value)}
-        style={{ marginBottom: "10px" }}
-      >
-        <option value="">Select a song</option>
-        {songs.map((song, index) => (
-          <option key={index} value={song}>
-            {song}
-          </option>
-        ))}
-      </select>
-      <button onClick={handlePlay} style={{ margin: "10px" }}>
-        Play
-      </button>
-      <p>Status: {status}</p>
+      <div className="player-display">
+        <h3>Now Playing:</h3>
+        <p className="song-title">{selectedSong || "Select a song"}</p>
+        <div className="progress-bar">
+          <div className="progress" style={{ width: `${progress}%` }}></div>
+        </div>
+      </div>
 
-      {/* Controles de reprodução */}
-      <div>
-        <button onClick={handlePause} style={{ margin: "5px" }}>
-          Pause
-        </button>
-        <button onClick={handleResume} style={{ margin: "5px" }}>
-          Resume
+      <div className="controls">
+        <select
+          value={selectedSong}
+          onChange={(e) => setSelectedSong(e.target.value)}
+          className="song-selector"
+        >
+          <option value="">Select a song</option>
+          {songs.map((song, index) => (
+            <option key={index} value={song}>
+              {song}
+            </option>
+          ))}
+        </select>
+        <button onClick={togglePlayPause} className="btn">
+          {isPaused ? "▶ Play" : "⏸ Pause"}
         </button>
       </div>
 
-      {/* Controles de volume */}
-      <div style={{ marginTop: "20px" }}>
+      <div className="volume-control">
         <h3>Volume</h3>
-        <button
-          onClick={() => handleVolumeChange("decrease")}
-          style={{ margin: "5px" }}
-        >
-          -
-        </button>
         <input
           type="range"
           min="0"
@@ -135,20 +111,16 @@ const MusicPlayer = () => {
           step="0.1"
           value={volume}
           onChange={handleVolumeSlider}
-          style={{ margin: "0 10px" }}
+          className="volume-slider"
         />
-        <button
-          onClick={() => handleVolumeChange("increase")}
-          style={{ margin: "5px" }}
-        >
-          +
-        </button>
-        <p>Volume: {volume}</p>
+        <p>{(volume * 100).toFixed(0)}%</p>
       </div>
 
-      {/* Componente de Upload */}
-      <h3>Upload Songs</h3>
       <SongUploader onUploadComplete={fetchSongs} />
+
+      <div className={`status ${status.includes("Error") ? "error" : "success"}`}>
+        {status}
+      </div>
     </div>
   );
 };
